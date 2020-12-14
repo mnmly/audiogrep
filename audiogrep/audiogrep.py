@@ -119,7 +119,7 @@ def text(files):
     return '\n'.join(out)
 
 
-def search(query, files, mode='sentence', regex=False):
+def search(query, files, mode='sentence', regex=False, use_confidence=False):
     '''Searches for words or sentences containing a search phrase'''
     out = []
     sentences = convert_timestamps(files)
@@ -129,7 +129,7 @@ def search(query, files, mode='sentence', regex=False):
     elif mode == 'word':
         out = word_search(query, sentences, regex)
     elif mode == 'franken':
-        out = franken_sentence(query, files)
+        out = franken_sentence(query, files, use_confidence)
     else:
         out = sentence_search(query, sentences, regex)
 
@@ -267,7 +267,7 @@ def sentence_search(query, sentences, regex):
     return out
 
 
-def franken_sentence(sentence, files):
+def franken_sentence(sentence, files, use_confidence = False):
     w_results = {}
     out = []
     for word in sentence.split(' '):
@@ -277,9 +277,12 @@ def franken_sentence(sentence, files):
             results = search(word, files, mode='word')
             w_results[word] = results
         if len(results) > 0:
-            #sorted(results, key=lambda k: k['confidence'])
-            #out = out + [results[0]]
-            out = out + [random.choice(results)]
+
+            if use_confidence:
+                sorted(results, key=lambda k: k['confidence'])
+                out = out + [results[0]]
+            else:
+                out = out + [random.choice(results)]
 
     return out
 
@@ -371,6 +374,7 @@ def main():
     parser.add_argument('--extract', '-x', dest='extract', help='Extract all individual words from an audio file and write them to disk.', action='store_true')
     parser.add_argument('--padding', '-p', dest='padding', type=int, help='Milliseconds of padding between the audio segments')
     parser.add_argument('--crossfade', '-c', dest='crossfade', type=int, default=0, help='Crossfade between clips')
+    parser.add_argument('--use-confidence', '-c', dest='use_confidence', type=bool, default=False, help='Crossfade between clips')
     parser.add_argument('--demo', '-d', dest='demo', action='store_true', help='Just display the search results without actually making the file')
     parser.add_argument('--layer', '-l', dest='layer', action='store_true', help='Overlay the audio segments')
     parser.add_argument('--json', '-j', dest='json', action='store_true', help='Output words to json')
@@ -396,7 +400,7 @@ def main():
 
     elif args.search:
         if args.outputmode == 'franken':
-            segments = franken_sentence(args.search, args.inputfile)
+            segments = franken_sentence(args.search, args.inputfile, args.use_confidence)
         else:
             segments = search(args.search, args.inputfile, mode=args.outputmode, regex=args.regex)
 
